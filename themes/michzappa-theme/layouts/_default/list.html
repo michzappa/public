@@ -1,0 +1,9 @@
+{{ define "main" }}
+<h1>{{ .Title }}</h1>
+{{ .Content }}
+{{ range (sort .Pages "Title") }}
+<ul>
+  <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+</ul>
+{{ end }}
+{{ end }}

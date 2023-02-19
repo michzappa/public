@@ -1,0 +1,6 @@
+name = "Zappwiki Theme"
+description = "Custom theme for Zappwiki"
+
+[author]
+  name = "Michael Zappa"
+  homepage = "https://michzappa.com"

@@ -1,0 +1,8 @@
+**/result
+*.db
+/.direnv/
+/.hugo_build.lock
+/archetypes/
+/content/
+/public/
+/resources/

@@ -1,0 +1,21 @@
+{{ if .Param "categories" }}
+Categories:
+{{ with sort .Params.categories }}
+{{ range . }}
+{{ $href := print (absURL "categories/") (urlize .) }}
+<a href="{{ $href }}">{{ . }}</a>
+{{ end }}
+{{ end }}
+<br>
+{{end}}
+
+{{ if .Param "tags" }}
+Tags:
+{{ with sort .Params.tags }}
+{{ range . }}
+{{ $href := print (absURL "tags/") (urlize .) }}
+<a href="{{ $href }}">{{ . }}</a>
+{{ end }}
+{{ end }}
+<br>
+{{end}}

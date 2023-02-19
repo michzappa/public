@@ -1,0 +1,50 @@
+html {
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    font-family: sans-serif;
+}
+
+body {
+    /* Center text while not ruining margins on mobile. */
+    font-size: 110%;
+    margin: 0 auto;
+    padding: 0 1em;
+    max-width: 60rem;
+}
+
+nav {
+    margin-top: 0.5em;
+}
+
+h1 {
+    /* Metadata right below page title. */
+    margin-bottom: 0em;
+}
+
+code { }
+
+/* Special styling for external links, using a heuristic. */
+a[href*='://'] {
+    color:#e06c75;
+}
+
+/* Logically, all other links are internal. */
+a {
+    color:#98c379;
+}
+
+/* Styling for all links. */
+a:hover {
+    filter: brightness(80%);
+}
+
+/* SEARCH */
+#search {
+    display: inline-block;
+    float: right;
+}
+
+#search-input {
+    width: 100px;
+    float: right;
+}

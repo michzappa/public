@@ -1,0 +1,1 @@
+- use highlight.js instead of the default chroma for code highlighting

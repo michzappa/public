@@ -1,0 +1,30 @@
+:root {
+    --bg-color: #282c34;
+    --text-color: #b0c4de;
+    --comment-color: #8a93a5;
+    --generic-deleted-color: #ff6c6b;
+    --generic-heading-color: #a2cbff;
+    --generic-inserted-color: #98be65;
+    --keyword-color: #76a9f9;
+    --keyword-constant-type-color: #e5c07b;
+    --line-highlight-color: #ffffcc;
+    --line-number-color: #58626f;
+    --literal-number-color: #d19a66;
+    --literal-string-color: #98c379;
+    --literal-string-doc-color: #7e97c3;
+    --literal-string-escape-color: #d26464;
+    --literal-string-symbol-color: #56b6c2;
+    --name-attribute-color: #cebc3a;
+    --name-class-color: #ca72ff;
+    --name-default-color: #aa89ea;
+    --name-entity-color: #bda26f;
+    --name-exception-color: #fd7474;
+    --name-function-color: #00b1f7;
+    --name-label-color: #f5a40d;
+    --name-variable-color: #dcaeea;
+    --name-variable-instance-color: #e06c75;
+    --operator-color: 54b1c7;
+    --operator-word-color: #b756ff;
+    --punctuation-color: #abb2bf;
+
+}

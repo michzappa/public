@@ -1,0 +1,1532 @@
+:PROPERTIES:
+:ID:       0080b1ba-43f6-41d8-8e30-010600c841c0
+:END:
+#+title: /etc/nixos
+#+export_file_name: etc_nixos
+#+filetags: @Dotfiles nix nixos
+#+hugo_base_dir: ../
+#+hugo_section: dotfiles
+#+options: author:nil
+
+Centralized configuration for my computers managed by [[https://nixos.org/][Nix]].
+
+For a given host =host=, =<host>.nix= is tangled. This file contains a function which returns the appropriate configuration for its host, whether it be NixOS, nix-darwin, or home-manager. =<host>.nix= files each contain a function which returns the host's configuration when passed my flake's inputs.
+
+/This file makes use of Org Mode's =noweb= templating system to interpolate source blocks. =<<template>>= is replaced by all the source blocks with a =:noweb-ref= of =template=./
+
+* Rorohiko
+My Framework laptop, whose =nixosConfiguration= lives in the the =rorohiko.nix= file.
+#+begin_src nix :noweb no-export :tangle rorohiko.nix
+  { self, ... }@inputs: {
+    rorohiko = inputs.nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        lib =
+          <<mz-lib>> "nixos";
+        platform = "nixos";
+        systemName = "rorohiko";
+      };
+      system = "x86_64-linux";
+      modules = [
+        <<mz-module>>
+      ] ++ [
+        inputs.home-manager.nixosModule
+        inputs.kmonad.nixosModules.default
+        inputs.nixos-hardware.nixosModules.framework-12th-gen-intel
+        <<rorohiko-configuration>>
+      ];
+    };
+  }
+#+end_src
+
+** Configuration
+Rorohiko-specific configuration, including: [[*Boot][boot]], [[*Filesystem][filesystem]], [[*Hardware][hardware]], [[*Networking][networking]], and enabled [[*Modules][modules]].
+#+begin_src nix :noweb no-export :noweb-ref rorohiko-configuration
+  ({ config, lib, modulesPath, pkgs, ... }: {
+    imports = [
+      (modulesPath + "/installer/scan/not-detected.nix")
+    ];
+
+    <<rorohiko-boot>>
+
+    <<rorohiko-filesystem>>
+
+    <<rorohiko-hardware>>
+
+    <<rorohiko-networking>>
+
+    mz = {
+      android.enable = true;
+      direnv.enable = true;
+      docker.enable = true;
+      emacs.enable = true;
+      firefox.enable = true;
+      fish.enable = true;
+      formal-reasoning.enable = true;
+      gaming.enable = true;
+      git.enable = true;
+      gnome.enable = true;
+      gnupg.enable = true;
+      java.enable = true;
+      kmonad.enable = true;
+      mullvad.enable = true;
+      nix.enable = true;
+      nodejs.enable = true;
+      ocaml.enable = true;
+      protonmail.enable = true;
+      syncthing.enable = true;
+      toolchain.enable = true;
+    };
+
+    system.stateVersion = "22.11";
+
+    time.timeZone = "America/New_York";
+  })
+#+end_src
+
+*** Boot
+Rorohiko uses UEFI and has a pretty plymouth splash screen.
+#+begin_src nix :noweb-ref rorohiko-boot
+  boot = {
+    extraModulePackages = [ ];
+    initrd = {
+      availableKernelModules =
+        [ "xhci_pci" "thunderbolt" "nvme" "usb_storage" "sd_mod" ];
+      kernelModules = [ ];
+    };
+    loader = {
+      efi.canTouchEfiVariables = true;
+      systemd-boot.enable = true;
+    };
+    kernelModules = [ "kvm-intel" ];
+    plymouth.enable = true;
+  };
+#+end_src
+
+*** Filesystem
+The default filesystem setup from the NixOS manual.
+#+begin_src nix :noweb-ref rorohiko-filesystem
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-label/root";
+      fsType = "ext4";
+    };
+    "/boot" = {
+      device = "/dev/disk/by-label/boot";
+      fsType = "vfat";
+    };
+  };
+
+  swapDevices = [{ device = "/dev/disk/by-label/swap"; }];
+#+end_src
+
+*** Hardware
+Rorohiko has an Intel 12th Generation CPU, an SSD, and a fingerprint reader.
+#+begin_src nix :noweb-ref rorohiko-hardware
+  hardware.cpu.intel.updateMicrocode = true;
+
+  powerManagement.cpuFreqGovernor = "powersave";
+
+  services = {
+    fstrim.enable = true;
+    fwupd.enable = true;
+  };
+#+end_src
+
+*** Networking
+Use wifi and turn on the firewall, nothing special.
+#+begin_src nix :noweb-ref rorohiko-networking
+  networking = {
+    firewall.enable = true;
+    hostName = "rorohiko";
+    interfaces.wlp166s0.useDHCP = true;
+    useDHCP = false;
+  };
+#+end_src
+
+
+* Etrange
+Using =home-manager= on non-NixOS Linux distributions.
+
+** Flake Output
+#+begin_src nix :noweb no-export :tangle etrange.nix
+  { self, ... }@inputs: {
+    etrange = inputs.home-manager.lib.homeManagerConfiguration {
+      extraSpecialArgs = {
+        lib =
+          <<mz-lib>> "home";
+        platform = "home";
+        systemName = "etrange";
+      };
+      pkgs = import inputs.nixpkgs {
+        config.allowUnfree = true;
+        system = "x86_64-linux";
+      };
+      modules = [
+        <<mz-module>>
+      ] ++ [
+        <<etrange-configuration>>
+      ];
+    };
+  }
+#+end_src
+
+** Configuration
+#+begin_src nix :noweb no-export :noweb-ref etrange-configuration
+  ({ config, lib, pkgs, ... }: {
+    home.stateVersion = "21.11";
+
+    mz = {
+      direnv.enable = true;
+      emacs.enable = true;
+      firefox.enable = true;
+      fish.enable = true;
+      git.enable = true;
+      gnome.enable = true;
+      nix.enable = true;
+    };
+  })
+#+end_src
+
+* VM
+A virtual machine to test configiguration changes without rebooting.
+
+** Flake Output
+#+begin_src nix :noweb no-export :tangle vm.nix
+  { self, ... }@inputs: {
+    vm = inputs.nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        lib =
+          <<mz-lib>> "nixos";
+        platform = "nixos";
+        systemName = "vm";
+      };
+      system = "x86_64-linux";
+      modules = [
+        <<mz-module>>
+      ] ++ [
+        inputs.home-manager.nixosModule
+        inputs.kmonad.nixosModules.default
+        <<vm-configuration>>
+      ];
+    };
+  }
+#+end_src
+
+* Configuration
+#+begin_src nix :noweb no-export :noweb-ref vm-configuration
+  ({ config, lib, modulesPath, pkgs, ... }: {
+    imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
+
+    <<qemu-vm-configuration>>
+
+    mz = {
+      emacs.enable = true;
+      fish.enable = true;
+      git.enable = true;
+      gnome.enable = true;
+      user = {
+        name = "vm-user";
+        password = "";
+      };
+    };
+
+    system.stateVersion = "22.05";
+
+    time.timeZone = "America/New_York";
+
+    users.mutableUsers = false;
+  })
+#+end_src
+
+** Default VM Setup
+Certain options are needed for the =nixos-rebuild build-vm= command.
+#+begin_src nix :noweb-ref qemu-vm-configuration
+  boot = {
+    extraModulePackages = [ ];
+    initrd = {
+      availableKernelModules =
+        [ "ata_piix" "uhci_hcd" "virtio_pci" "sr_mod" "virtio_blk" ];
+      kernelModules = [ ];
+    };
+    kernelModules = [ "kvm-intel" ];
+    kernelParams = [ "console=tty1" "console=ttyS0,115200" ];
+  };
+
+  fileSystems."/" = {
+    device = "/dev/vda1";
+    fsType = "ext4";
+  };
+
+  virtualisation = {
+    cores = 6;
+    memorySize = 4096;
+  };
+#+end_src
+
+* Library
+I added convenience functions to enable my platform-agnostic [[*Modules][module]] system by lazily-loading options on platforms where they exist. This function returns these functions when given the platform it is being built for.
+#+begin_src nix :noweb-ref mz-lib
+  (platform:
+    inputs.nixpkgs.lib.extend (final: prev:
+      inputs.home-manager.lib // {
+        mz = ({ lib, platform, ... }:
+          with lib;
+          with lib.mz; {
+            ifHomeManager = conf: (ifPlatforms [ "home" ] conf);
+
+            ifNixDarwin = conf: (ifPlatforms [ "darwin" ] conf);
+
+            ifNixOS = conf: (ifPlatforms [ "nixos" ] conf);
+
+            ifNixSystem = conf: (ifPlatforms [ "darwin" "nixos" ] conf);
+
+            ifPlatforms = optionPlatforms: conf:
+              (optionalAttrs
+                (foldr (optionPlatform: acc: (platform == optionPlatform) || acc)
+                  false optionPlatforms) conf);
+          }) {
+            lib = final;
+            platform = platform;
+          };
+      }))
+#+end_src
+
+* Modules
+** Android
+I flash custom ROMs to my Android phones. Waydroid has potential but I don't really have any use for it.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.android;
+    in {
+      options.mz.android = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+
+        waydroid = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        mz.user = {
+          extraGroups = [ "adbusers" ];
+          packages = with pkgs; [ android-studio ];
+        };
+
+        programs.adb.enable = true;
+
+        services.udev.packages = [ pkgs.android-udev-rules ];
+
+        virtualisation = mkIf cfg.waydroid {
+          lxd.enable = true;
+          waydroid.enable = true;
+        };
+      });
+    })
+#+end_src
+
+** Software
+Software I want available that hasn't fit into a more specific module. This is where GUI applications for NixOS often end up, as do common system libraries that need to be added to =LD_LIBRARY_PATH=.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.software;
+    in {
+      options.mz.software = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+        };
+
+        gui-apps = mkOption {
+          type = types.bool;
+          default = true;
+        };
+      };
+
+      config = mkIf cfg.enable (mkMerge [
+        {
+          mz.home.packages = with pkgs; [
+            gnumake
+            ispell
+            qemu
+            ripgrep
+            screen
+            texlive.combined.scheme-full
+            tree
+            unzip
+            wget
+            zip
+          ];
+        }
+
+        (ifNixOS {
+          environment.systemPackages = with pkgs; [ emacs gcc ];
+
+          environment.variables.LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libuuid];
+
+          mz.user.packages = with pkgs;
+            mkIf cfg.gui-apps [
+              calibre
+              chromium
+              discord
+              element-desktop
+              freetube
+              gramps
+              gthumb
+              knock
+              libreoffice
+              signal-desktop
+              spotify
+              teams
+              thunderbird
+              xournalpp
+              zoom-us
+            ];
+        })
+      ]);
+    })
+#+end_src
+
+** Bitwarden
+Shell integration with the Bitwarden password manager.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.bitwarden;
+    in {
+      options.mz.bitwarden = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          packages = with pkgs; [ bitwarden bitwarden-cli ];
+          programs.fish.functions = {
+            bwu = ''export BW_SESSION="$(bw unlock --raw)"'';
+            bwl = "export BW_SESSION=";
+          };
+        };
+      };
+    })
+#+end_src
+
+** OCaml
+A not-fully-declarative OCaml setup, additional packages should be installed with =opam=.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.ocaml;
+    in {
+      options.mz.ocaml = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = {
+        mz.home = {
+          packages = with pkgs; [ opam ];
+          programs = {
+            fish.shellInit = ''
+              source ${config.mz.user.homeDir}/.opam/opam-init/init.fish > /dev/null 2> /dev/null; or true
+            '';
+          };
+        };
+      };
+    })
+#+end_src
+
+** Toolchain
+Tools for building using general C toolchains or =make= processes. I want both =clang= and =gcc= to be available, so I set =gcc= as high priority to avoid conflicts in their outputs.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.toolchain;
+    in {
+      options.mz.toolchain = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = {
+        mz.home.packages = with pkgs; [
+          (hiPrio gcc)
+          autoconf
+          clang
+          clang-tools
+          cmake
+          gnumake
+          nasm
+          pkg-config
+          valgrind
+        ];
+      };
+    })
+#+end_src
+
+** Node.js
+A not-fully-declarative Node.js setup, additional packages should be installed with =npm=. Also VSCode.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.nodejs;
+    in {
+      options.mz.nodejs = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = {
+        mz.home = {
+          packages = with pkgs; [
+            nodePackages.typescript-language-server
+            nodejs-16_x
+          ];
+
+          programs = {
+            vscode = {
+              enable = true;
+              extensions = with pkgs.vscode-extensions;
+                [
+                  dbaeumer.vscode-eslint
+                  esbenp.prettier-vscode
+                  tuttieee.emacs-mcx
+                ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [{
+                  name = "vscode-jest-runner";
+                  publisher = "firsttris";
+                  version = "0.4.59";
+                  sha256 = "sha256-49Yf35FKeQj3esJDineK5Pu3G4yWvetDeN/FzyXpTfg=";
+                }];
+            };
+          };
+        };
+      };
+    })
+#+end_src
+
+** Direnv
+I use direnv for nix-enabled project dev shells.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, inputs, lib, options, pkgs, platform, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.direnv;
+    in {
+      options.mz.direnv = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          programs.direnv = {
+            enable = true;
+            nix-direnv.enable = true;
+          };
+        };
+      };
+    })
+#+end_src
+
+** Docker
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.docker;
+    in {
+      options.mz.docker = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        mz.user.extraGroups = [ "docker" ];
+
+        virtualisation.docker.enable = true;
+      });
+    })
+#+end_src
+
+** Emacs
+What makes it all possible. Emacs version for interactive use with certain packages built in, usually those with more external dependencies that are a pain with Emacs' package managers.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.emacs;
+    in {
+      options.mz.emacs = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          programs = {
+            emacs = {
+              enable = true;
+              extraPackages = (epkgs: (with epkgs; [ pdf-tools vterm ]));
+              package = pkgs.emacsGit;
+            };
+            fish.functions = { ec = "emacsclient -t -a '' $argv"; };
+          };
+        };
+      };
+    })
+#+end_src
+
+** Firefox
+Disable the tab bar (I use the tab tree extension) and load tabs in background so they can be opened /en masse/.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.firefox;
+    in {
+      options.mz.firefox = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          programs.firefox = {
+            enable = true;
+            package = pkgs.firefox-wayland;
+            profiles.default = {
+              id = 0;
+              isDefault = true;
+              userChrome = "#TabsToolbar { visibility: collapse !important; }";
+              settings = {
+                "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+                "browser.tabs.loadDivertedInBackground" = true;
+              };
+            };
+          };
+        };
+      };
+    })
+#+end_src
+
+** Fish
+Convenient aliases for =nix= et al. plus some basic aesthetics.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, systemName, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.fish;
+    in {
+      options.mz.fish = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (mkMerge [
+        {
+          mz = {
+            home = {
+              programs.fish = {
+                enable = true;
+                functions = let configPath = "~/org/public";
+                in {
+                  build-nixos-vm =
+                    "nixos-rebuild build-vm --flake ${configPath}#vm";
+                  dev = "nix develop ${inputs.nixpkgs.outPath}#$argv[1]";
+                  dot-build = "nix build .#$argv[1]";
+                  gimme = "nix shell ${inputs.nixpkgs.outPath}#$argv";
+                  lookup = "nix search path:${inputs.nixpkgs.outPath} $argv[1]";
+                  nix-clear-result-dirs = ''
+                    nix-store --gc --print-roots |\
+                      awk '{print $1}' |\
+                      grep /result |\
+                      tee /dev/tty |\
+                      sudo xargs rm
+                  '';
+                  reboot = "sudo shutdown -r now";
+                  rebuild-home =
+                    "home-manager $argv[1] --flake ${configPath}#${systemName}";
+                  rebuild-nixos =
+                    "nixos-rebuild --use-remote-sudo $argv[1] --flake ${configPath}#${systemName}";
+                  weather = ''
+                    if test (count $argv) -lt 1;
+                       curl wttr.in
+                    else
+                       curl wttr.in/$argv[1]
+                    end
+                  '';
+                };
+                interactiveShellInit = with pkgs; ''
+                  # disable the annoying $EDITOR keybindings by remapping to nop
+                  bind \ee true
+                  bind \ev true
+
+                  ${any-nix-shell}/bin/any-nix-shell fish --info-right | source
+
+                  set fish_greeting
+                  if [ $TERM != "dumb" ]
+                    function fish_mode_prompt; end
+                    function fish_prompt; end
+                    ${starship}/bin/starship init fish | source
+                  end
+                '';
+              };
+              xdg-file."starship.toml".text = ''
+                add_newline = false
+
+                [character]
+                success_symbol = "[➜](bold green)"
+
+                [cmd_duration]
+                min_time = 5
+                show_milliseconds = true
+
+                [directory]
+                truncation_length = 0
+
+                [package]
+                disabled = true
+              '';
+            };
+            user.shell = pkgs.fish;
+          };
+          programs.fish.enable = true;
+        }
+
+        (ifNixSystem { environment.shells = with pkgs; [ fish ]; })
+
+        (ifNixDarwin {
+          system.activationScripts.postActivation.text = ''
+            sudo chsh -s ${pkgs.fish}/bin/fish ${config.mz.user.name}
+          '';
+        })
+      ]);
+    })
+#+end_src
+
+** Gaming
+Steam and a version of Wine which I have had success with.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.gaming;
+    in {
+      options.mz.gaming = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        hardware.opengl.driSupport32Bit = true;
+        mz.user.packages = with pkgs; [ samba wineWowPackages.staging ];
+        programs.steam.enable = true;
+      });
+    })
+#+end_src
+
+** Git
+Providing =git= my identity.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.git;
+    in {
+      options.mz.git = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+
+        name = mkOption {
+          type = types.str;
+          default = "Michael Zappa";
+        };
+
+        email = mkOption {
+          type = types.str;
+          default = "me@michzappa.com";
+        };
+
+        forgeAccount = mkOption {
+          type = types.str;
+          default = "michzappa";
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          programs.git = {
+            enable = true;
+            userName = cfg.name;
+            userEmail = cfg.email;
+            extraConfig = {
+              gitlab.user = cfg.forgeAccount;
+              github.user = cfg.forgeAccount;
+            };
+          };
+        };
+      };
+    })
+#+end_src
+
+** Gnome
+My preferred graphical desktop environment - with Chinese and Japanese input methods, extensions, and [[*DConf][personal customizations]].
+#+begin_src nix :noweb no-export :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.gnome;
+    in {
+      options.mz.gnome = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+
+        dconf-defaults = mkOption {
+          type = types.bool;
+          default = true;
+        };
+      };
+
+      config = mkIf cfg.enable (mkMerge [
+        {
+          mz = {
+            home = {
+              dconf.settings = with lib.hm.gvariant; mkIf cfg.dconf-defaults
+                <<dconf-config>>;
+            };
+            user.extraGroups = [ "networkmanager" "uinput" ];
+          };
+        }
+
+        (ifNixOS {
+          environment.systemPackages = with pkgs; [
+            dconf2nix
+            gnome.gnome-terminal
+            gnome.gnome-tweaks
+            gnomeExtensions.appindicator
+            wl-clipboard
+            xclip
+          ];
+
+          fonts = {
+            fonts = with pkgs; [
+              noto-fonts
+              noto-fonts-cjk
+              noto-fonts-emoji
+              noto-fonts-extra
+            ];
+          };
+
+          i18n = {
+            defaultLocale = "fr_FR.UTF-8";
+            inputMethod = {
+              enabled = "ibus";
+              ibus.engines = with pkgs.ibus-engines; [ anthy libpinyin rime ];
+            };
+          };
+
+          programs.kdeconnect = {
+            enable = true;
+            package = pkgs.gnomeExtensions.gsconnect;
+          };
+
+          services = {
+            xserver = {
+              enable = true;
+              desktopManager.gnome.enable = true;
+              displayManager.gdm.enable = true;
+              libinput.enable = true;
+            };
+          };
+        })
+      ]);
+    })
+#+end_src
+
+*** DConf
+#+begin_src nix :noweb-ref dconf-config
+  (mkMerge [
+    (ifNixOS {
+      "org/gnome/desktop/background" = {
+        picture-uri =
+          "file:///run/current-system/sw/share/backgrounds/gnome/adwaita-l.webp";
+        picture-uri-dark =
+          "file:///run/current-system/sw/share/backgrounds/gnome/adwaita-d.webp";
+      };
+    })
+
+    (ifHomeManager {
+      "org/gnome/desktop/input-sources" = {
+        xkb-options = [ "terminate:ctrl_alt_bksp" "ctrl:nocaps" ];
+      };
+    })
+
+    {
+      "org/freedesktop/ibus/engine/anthy/common" = {
+        conversion-segment-mode = 0;
+        input-mode = 0;
+        show-dict-mode = false;
+        show-typing-method = true;
+        typing-method = 0;
+      };
+
+      "org/gnome/desktop/background" = {
+        color-shading-type = "solid";
+        picture-options = "zoom";
+        primary-color = "#3071AE";
+        secondary-color = "#000000";
+      };
+
+      "org/gnome/desktop/input-sources" = {
+        per-window = false;
+        sources = [
+          (mkTuple [ "xkb" "fr+us" ])
+          (mkTuple [ "xkb" "us" ])
+          (mkTuple [ "xkb" "it+us" ])
+          (mkTuple [ "ibus" "anthy" ])
+          (mkTuple [ "ibus" "libpinyin" ])
+          (mkTuple [ "ibus" "rime" ])
+        ];
+        xkb-options = [ "terminate:ctrl_alt_bksp" ];
+      };
+
+      "org/gnome/desktop/interface" = {
+        clock-format = "12h";
+        color-scheme = "prefer-dark";
+        font-antialiasing = "grayscale";
+        font-hinting = "slight";
+        gtk-theme = "Adwaita-dark";
+        show-battery-percentage = true;
+      };
+
+      "org/gnome/desktop/peripherals/touchpad" = {
+        natural-scroll = false;
+        two-finger-scrolling-enabled = true;
+      };
+
+      "org/gnome/desktop/screensaver" = {
+        color-shading-type = "solid";
+        picture-options = "zoom";
+        picture-uri =
+          "file:///run/current-system/sw/share/backgrounds/gnome/adwaita-l.jpg";
+        picture-uri-dark =
+          "file:///run/current-system/sw/share/backgrounds/gnome/adwaita-d.jpg";
+        primary-color = "#3465a4";
+        secondary-color = "#000000";
+      };
+
+      "org/gnome/desktop/wm/keybindings" = {
+        close = [ "<Super>q" ];
+        move-to-workspace-1 = [ ];
+        move-to-workspace-last = [ ];
+        move-to-workspace-left = [ "<Shift><Super>Home" ];
+        move-to-workspace-right = [ "<Shift><Super>End" ];
+        switch-applications = [ ];
+        switch-applications-backward = [ ];
+        switch-to-workspace-1 = [ ];
+        switch-to-workspace-last = [ ];
+        switch-to-workspace-left = [ "<Super>Home" ];
+        switch-to-workspace-right = [ "<Super>End" ];
+        switch-windows = [ "<Alt>Tab" ];
+        switch-windows-backward = [ "<Shift><Alt>Tab" ];
+      };
+
+      "org/gnome/desktop/wm/preferences" = {
+        button-layout = "appmenu:minimize,maximize,close";
+      };
+
+      "org/gnome/mutter" = {
+        experimental-features = [ "scale-monitor-framebuffer" ];
+        workspaces-only-on-primary = false;
+      };
+
+      "org/gnome/settings-daemon/plugins/media-keys" = {
+        custom-keybindings = [
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/"
+        ];
+        help = [ ];
+        home = [ "<Super>f" ];
+        www = [ "<Super>b" ];
+      };
+
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" =
+        {
+          binding = "<Super>t";
+          command = "gnome-terminal";
+          name = "terminal";
+        };
+
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1" =
+        {
+          binding = "<Super>e";
+          command = ''emacsclient -c -a ""'';
+          name = "emacsclient";
+        };
+
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2" =
+        {
+          binding = "<Shift><Super>e";
+          command = "emacs";
+          name = "emacs";
+        };
+
+      "org/gnome/shell" = {
+        disable-user-extensions = false;
+        disabled-extensions = [
+          "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
+          "windowsNavigator@gnome-shell-extensions.gcampax.github.com"
+          "window-list@gnome-shell-extensions.gcampax.github.com"
+          "screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com"
+          "drive-menu@gnome-shell-extensions.gcampax.github.com"
+          "apps-menu@gnome-shell-extensions.gcampax.github.com"
+          "launch-new-instance@gnome-shell-extensions.gcampax.github.com"
+        ];
+        enabled-extensions = [
+          "appindicatorsupport@rgcjonas.gmail.com"
+          "places-menu@gnome-shell-extensions.gcampax.github.com"
+          "gsconnect@andyholmes.github.io"
+          "mullvadindicator@pobega.github.com"
+        ];
+        favorite-apps = [
+          "firefox.desktop"
+          "org.gnome.Terminal.desktop"
+          "org.gnome.Nautilus.desktop"
+          "emacs.desktop"
+        ];
+        had-bluetooth-devices-setup = true;
+        welcome-dialog-last-shown-version = "41.1";
+      };
+
+      "org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9" =
+        {
+          audible-bell = false;
+          font = "DejaVu Sans Mono 20";
+          use-system-font = false;
+          visible-name = "michael";
+        };
+
+      "org/gnome/tweaks" = { show-extensions-notice = false; };
+    }
+  ])
+#+end_src
+
+** GnuPG
+I had to use this at one point... forget for what.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.gnupg;
+    in {
+      options.mz.gnupg = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        programs.gnupg.agent = {
+          enable = true;
+          enableSSHSupport = true;
+          pinentryFlavor = "curses";
+        };
+      });
+    })
+#+end_src
+
+** Home
+Convenient multi-platform option aliases for =home-manager=, for use in these modules.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz; {
+      options.mz.home = {
+        dconf = mkOption {
+          type = types.attrs;
+          default = { };
+        };
+
+        file = mkOption {
+          type = types.attrs;
+          default = { };
+        };
+
+        packages = mkOption {
+          type = types.listOf types.package;
+          default = [ ];
+        };
+
+        programs = mkOption {
+          type = types.attrs;
+          default = { };
+        };
+
+        systemd = mkOption {
+          type = types.attrs;
+          default = { };
+        };
+
+        xdg-file = mkOption {
+          type = types.attrs;
+          default = { };
+        };
+      };
+
+      config = (mkMerge [
+        (ifNixSystem {
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            users.${config.mz.user.name} = {
+              home = {
+                file = mkAliasDefinitions options.mz.home.file;
+                packages = mkAliasDefinitions options.mz.home.packages;
+                stateVersion = config.system.stateVersion;
+              };
+              dconf = mkAliasDefinitions options.mz.home.dconf;
+              programs = mkAliasDefinitions options.mz.home.programs;
+              systemd = mkAliasDefinitions options.mz.home.systemd;
+              xdg.configFile = mkAliasDefinitions options.mz.home.xdg-file;
+            };
+          };
+        })
+
+        (ifHomeManager {
+          home = {
+            file = mkAliasDefinitions options.mz.home.file;
+            homeDirectory = mkAliasDefinitions options.mz.user.homeDir;
+            packages = mkAliasDefinitions options.mz.home.packages;
+            username = mkAliasDefinitions options.mz.user.name;
+          };
+          dconf = mkAliasDefinitions options.mz.home.dconf;
+          programs = mkAliasDefinitions options.mz.home.programs;
+          systemd = mkAliasDefinitions options.mz.home.systemd;
+          xdg.configFile = mkAliasDefinitions options.mz.home.xdg-file;
+        })
+
+        (ifHomeManager { mz.home.programs.home-manager.enable = true; })
+      ]);
+    })
+#+end_src
+
+** Java
+Might as well have it.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.java;
+    in {
+      options.mz.java = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        mz.home.packages = with pkgs;
+          [ jetbrains.idea-community ];
+
+        programs.java = {
+          enable = true;
+          package = pkgs.openjdk11;
+        };
+      });
+    })
+
+#+end_src
+
+** KMonad
+System-wide keyboard customization.
+#+begin_src nix :noweb no-export :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.kmonad;
+    in {
+      options.mz.kmonad = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+
+        config = mkOption {
+          type = types.str;
+          default = ''
+            <<kmonad-config>>
+          '';
+        };
+
+        device = mkOption {
+          type = types.str;
+          default = "/dev/input/by-path/platform-i8042-serio-0-event-kbd";
+        };
+
+        name = mkOption {
+          type = types.str;
+          default = "internal";
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        services = {
+          kmonad = {
+            enable = true;
+            keyboards.${cfg.name} = {
+              config = cfg.config;
+              device = cfg.device;
+              defcfg = {
+                enable = true;
+                allowCommands = false;
+                fallthrough = true;
+              };
+            };
+          };
+        };
+      });
+    })
+#+end_src
+
+*** Kbd Configuration
+Despite flirtations with other things (see unused Colemak layer) I use QWERTY with caps lock as control. Left control is caps lock on tap just so it remains available.
+#+begin_src text :noweb-ref kmonad-config
+  (defsrc
+    grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+    tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+    caps a    s    d    f    g    h    j    k    l    ;    '    ret
+    lsft z    x    c    v    b    n    m    ,    .    /    rsft
+    lctl lmet lalt           spc            ralt rctl)
+
+  ;; template
+  ;; (deflayer <name>
+  ;;   _  _    _    _    _    _    _    _    _    _    _    _    _    _
+  ;;   _  _    _    _    _    _    _    _    _    _    _    _    _    _
+  ;;   _  _    _    _    _    _    _    _    _    _    _    _    _
+  ;;   _  _    _    _    _    _    _    _    _    _    _    _
+  ;;   _  _    _              _              _    _)
+
+  (deflayer qwerty
+    grv       1    2    3    4    5    6    7    8    9    0    -    =    bspc
+    tab       q    w    e    r    t    y    u    i    o    p    [    ]    \
+    ctl       a    s    d    f    g    h    j    k    l    ;    '    ret
+    lsft      z    x    c    v    b    n    m    ,    .    /    rsft
+    @caps_ctl lmet lalt           spc            ralt rctl)
+
+  (deflayer colemak
+    grv       1    2    3    4    5    6    7    8    9    0    -    =    bspc
+    tab       q    w    f    p    g    j    l    u    y    ;    [    ]    \
+    ctl       a    r    s    t    d    h    n    e    i    o    '    ret
+    lsft      z    x    c    v    b    k    m    ,    .    /    rsft
+    @caps_ctl lmet lalt           spc            ralt rctl)
+
+  (defalias
+    caps_ctl (tap-next caps lctl))
+#+end_src
+
+** Mullvad
+Very privacy-centric VPN (you can pay by mail).
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.mullvad;
+    in {
+      options.mz.mullvad = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        environment.systemPackages = with pkgs; [
+          gnomeExtensions.mullvad-indicator
+          mullvad-vpn
+        ];
+
+        services.mullvad-vpn.enable = true;
+      });
+    })
+#+end_src
+
+** Nix
+Overlays and other config for the Nix package manager.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.nix;
+    in {
+      options.mz.nix = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+        };
+      };
+
+      config = mkIf cfg.enable (mkMerge [
+        {
+          mz.home.packages = with pkgs; [ nix-diff nixfmt ];
+
+          nix = {
+            extraOptions = ''
+              experimental-features = nix-command flakes
+            '';
+            package = pkgs.nix;
+          };
+
+          nixpkgs = {
+            config.allowUnfree = true;
+            overlays = [
+              (self: super: {
+                knock = inputs.knock.outputs.packages.${pkgs.system}.knock;
+              })
+              inputs.emacs.overlay
+            ];
+          };
+        }
+
+        (ifNixSystem {
+          nix = {
+            settings = {
+              auto-optimise-store = true;
+              trusted-users = [ "root" "@wheel" ];
+            };
+          };
+        })
+
+        (ifNixDarwin { services.nix-daemon.enable = true; })
+      ]);
+    })
+#+end_src
+
+** Pipewire
+PulseAudio is so 2019.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.pipewire;
+    in {
+      options.mz.pipewire = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        hardware.pulseaudio.enable = false;
+
+        security.rtkit.enable = true;
+
+        services = {
+          pipewire = {
+            enable = true;
+            alsa = {
+              enable = true;
+              support32Bit = true;
+            };
+            pulse.enable = true;
+          };
+        };
+
+        sound.enable = false;
+      });
+    })
+#+end_src
+
+** ProtonMail
+My current mail-provider, with whom I have a love-hate relationship.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.protonmail;
+    in {
+      options.mz.protonmail = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          packages = with pkgs; [ protonmail-bridge ];
+          programs.fish.functions = { protonmail-bridge-restart = "systemctl restart --user protonmail-bridge.service"; };
+          systemd.user.services.protonmail-bridge = {
+            Install.WantedBy = [ "default.target" ];
+            Service = {
+              Environment = "PATH=${pkgs.gnome.gnome-keyring}/bin";
+              ExecStart =
+                "${pkgs.protonmail-bridge}/bin/protonmail-bridge --no-window --log-level debug";
+            };
+            Unit = {
+              After = [ "network.target" ];
+              Description = "ProtonMail Bridge";
+            };
+          };
+        };
+      };
+    })
+#+end_src
+
+** Formal Reasoning
+Theorem proovers, dependent typers, and their Emacs packages.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.formal-reasoning;
+    in {
+      options.mz.formal-reasoning = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable {
+        mz.home = {
+          file.".agda/defaults".text = "standard-library";
+          packages = with pkgs; [
+            (agda.withPackages [ agdaPackages.standard-library ])
+            coq
+            lean
+          ];
+          programs.emacs.extraPackages =
+            (epkgs: (with epkgs; [ agda2-mode lean-mode proof-general ]));
+        };
+      };
+    })
+
+#+end_src
+
+** Syncthing
+"The Cloud" is not always "someone else's computer". Sometimes it's "my other computer".
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz;
+    let cfg = config.mz.syncthing;
+    in {
+      options.mz.syncthing = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+        };
+      };
+
+      config = mkIf cfg.enable (ifNixOS {
+        services.syncthing = {
+          enable = true;
+          user = config.mz.user.name;
+          group = "users";
+          dataDir = "/home/${config.mz.user.name}";
+          configDir = "/home/${config.mz.user.name}/.config/syncthing";
+          openDefaultPorts = true;
+        };
+      });
+    })
+#+end_src
+
+** User
+Convenient multi-platform aliases for =users.users= options.
+#+begin_src nix :noweb-ref mz-module
+  ({ config, lib, options, pkgs, ... }:
+    with lib;
+    with lib.mz; {
+      options.mz.user = {
+        name = mkOption {
+          type = types.str;
+          default = "michael";
+        };
+
+        extraGroups = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+        };
+
+        homeDir = mkOption {
+          type = types.str;
+          default = "/home/${config.mz.user.name}";
+        };
+
+        packages = mkOption {
+          type = types.listOf types.package;
+          default = [ ];
+        };
+
+        password = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+        };
+
+        shell = mkOption {
+          type = types.nullOr types.shellPackage;
+          default = null;
+        };
+      };
+
+      config = (ifNixSystem {
+        security.sudo.wheelNeedsPassword = false;
+
+        users.users.${config.mz.user.name} = (mkMerge [
+          (ifNixOS {
+            extraGroups = mkAliasDefinitions options.mz.user.extraGroups;
+            isNormalUser = true;
+            password = mkAliasDefinitions options.mz.user.password;
+          })
+
+          (ifNixOS { extraGroups = [ "wheel" ]; })
+
+          {
+            name = mkAliasDefinitions options.mz.user.name;
+            home = mkAliasDefinitions options.mz.user.homeDir;
+            packages = mkAliasDefinitions options.mz.user.packages;
+            shell = mkAliasDefinitions options.mz.user.shell;
+          }
+        ]);
+      });
+    })
+#+end_src

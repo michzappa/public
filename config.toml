@@ -1,0 +1,49 @@
+baseURL = '/'
+languageCode = 'en-us'
+title = 'michzappa.com'
+theme = "michzappa-theme"
+
+[author]
+name = "Michael Zappa"
+email = "me@michzappa.com"
+
+[menu]
+[[menu.main]]
+  identifier = 'categories'
+  name = 'Categories'
+  url = '/categories/'
+  weight = 3000
+[[menu.main]]
+  identifier = 'tags'
+  name = 'Tags'
+  url = '/tags/'
+  weight = 4000  
+# [[menu.main]]
+#   identifier = 'projects'
+#   name = 'Projects'
+#   url = '/projects/'
+#   weight = 3000
+# [[menu.main]]
+#   identifier = 'tips'
+#   name = 'Tips'
+#   url = '/tips/'
+#   weight = 4000
+# [[menu.main]]
+#   identifier = 'dotfiles'
+#   name = 'Dotfiles'
+#   url = '/dotfiles/'
+#   weight = 5000
+  
+[markup.goldmark.renderer]
+  unsafe = true
+
+[markup.highlight]
+  noClasses = false
+
+[markup.tableOfContents]
+  startLevel = 2
+  endLevel = 10
+  ordered = false
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]

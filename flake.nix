@@ -25,7 +25,7 @@
 
         packages = rec {
           site = pkgs.stdenv.mkDerivation {
-            name = "wiki";
+            name = "site";
             src = self;
             buildInputs = with pkgs; [ hugo go tangler ];
             buildPhase = ''

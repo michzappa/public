@@ -2,13 +2,14 @@
 :ID:       0080b1ba-43f6-41d8-8e30-010600c841c0
 :END:
 #+title: /etc/nixos
-#+export_file_name: etc_nixos
 #+filetags: @Dotfiles nix nixos
+#+export_file_name: etc_nixos
 #+hugo_base_dir: ../
-#+hugo_section: dotfiles
-#+options: author:nil
+#+hugo_section: /
 
-Centralized configuration for my computers managed by [[https://nixos.org/][Nix]].
+# This is a separate file for easier tangling.
+
+Centralized configuration for my computers managed by [[https://nixos.org/][Nix]], which is automatically tangled when using =nixos-rebuild=.
 
 For a given host =host=, =<host>.nix= is tangled. This file contains a function which returns the appropriate configuration for its host, whether it be NixOS, nix-darwin, or home-manager. =<host>.nix= files each contain a function which returns the host's configuration when passed my flake's inputs.
 
@@ -853,7 +854,6 @@ My preferred graphical desktop environment - with Chinese and Japanese input met
           };
 
           i18n = {
-            defaultLocale = "fr_FR.UTF-8";
             inputMethod = {
               enabled = "ibus";
               ibus.engines = with pkgs.ibus-engines; [ anthy libpinyin rime ];

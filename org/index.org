@@ -1,0 +1,19 @@
+:PROPERTIES:
+:ROAM_EXCLUDE: t
+:ID:       c06fb4f3-201b-4b04-94df-4c68c53b955d
+:END:
+#+hugo_base_dir: ../
+#+hugo_section: /
+#+export_file_name: _index
+#+title: michzappa.com
+
+/Please excuse the current aesthetics, I am in the process of making my own [[https://gohugo.io/][Hugo]] theme./
+
+This site (a personal wiki of sorts) contains information I wish to share, for the benefit of myself and others - project writeups, tips on various processes, dotfiles for software configuration, et cetera.
+
+*** I am looking for a job
+I am a 2023 Computer Science graduate from Northeastern University who is currently looking for a full-time job in the Boston area - my past internships were in fintech and robotics though I worked on large-scale, web-based systems at both companies. My resume is available [[https://gitlab.com/michzappa/resume/-/raw/master/resume.pdf?inline=false][here]].
+
+I am motivated by understanding how and why complex systems work, especially those that I use - my computing interests reside mostly in operating systems, programming languages, and formal methods. To the same end I also like the more human systems of linguistics, economics, and geopolitics.
+
+My personal projects live on [[https://gitlab.com/users/michzappa][GitLab]] but I also contribute to others' work on [[https://github.com/michzappa][GitHub]].

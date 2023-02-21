@@ -1,0 +1,35 @@
+:PROPERTIES:
+:ID:       d5674eb7-cbc7-4d5c-9dd9-5d50b07fd089
+:END:
+#+title: Opening A File In Emacs From Intellij
+#+filetags: @Tips emacs intellij
+#+export_file_name: opening_a_file_in_emacs_from_intellij
+#+hugo_base_dir: ../
+#+hugo_section: /
+
+Based on [[https://blog.developer.atlassian.com/emacs-intellij/][Quick Tip: Getting Emacs and IntelliJ to play together]]. There must already be an Emacs running in server mode (=--daemon=).
+
+1. Make this script, which opens the file in Emacs with the cursor in the same location as in Intellij.
+   #+begin_src shell
+     #! /usr/bin/env sh
+
+     file=$1
+     line=$2
+     column=$3
+
+     emacsclient -n -e "
+       (prognc
+         (find-file \"$file\")
+         (goto-char (point-min))
+         (forward-line (1- $line))
+         (forward-char (1- $column))
+         (recenter-top-bottom)
+         (select-frame-set-input-focus (selected-frame)))
+     "
+   #+end_src
+
+2. Make an External Tool in Intellij for this script.
+   - Arguments: =$FilePath$ $LineNumber$ $ColumnNumber$=
+   - Working directory: =$FileDir$=
+
+3. Add a keybinding for this External Tool in Intellij. I use the Emacs keymap and add this at Meta+O.

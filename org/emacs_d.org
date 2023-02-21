@@ -2,14 +2,15 @@
 :ID:       c2191aa6-095b-4b4c-a9a5-adfaf017384a
 :END:
 #+title: ~/.emacs.d
-#+export_file_name: emacs_d
 #+filetags: @Dotfiles emacs
-#+property: header-args :tangle ~/.config/emacs/init.el
+#+export_file_name: emacs_d
 #+hugo_base_dir: ../
-#+hugo_section: dotfiles
-#+options: author:nil
+#+hugo_section: /
+#+property: header-args :tangle ~/.config/emacs/init.el
 
-My personal Emacs configuration.
+# This is a separate file for easier tangling.
+
+My personal Emacs configuration, which gets manually tangled to =~/.config/emacs=.
 
 /This file makes use of Org Mode's =noweb= templating system to interpolate source blocks. =<<template>>= is replaced by all the source blocks with a =:noweb-ref= of =template=./
 
@@ -886,6 +887,7 @@ Needs no introduction.
     (org-directory "~/org")
     (org-image-actual-width nil)
     (org-imenu-depth 10)
+    (org-refile-targets nil)
     (org-src-fontify-natively t)
     (org-src-tab-acts-natively t)
     (org-src-window-setup 'current-window)
@@ -998,21 +1000,12 @@ Customization for exporting from Org Mode. The LaTeX process litters build files
 #+end_src
 
 ***** hugo
-How I publish this site. Turn off =org-encrypt-entries= on save for better performance.
+How I publish this site, turning off =org-encrypt-entries= on save for better performance. Because I don't add new entries often, I don't have any capture templates.
 #+begin_src emacs-lisp :noweb-ref ox-hugo :tangle no
   (use-package-dependency ox-hugo
     :after (ox org-roam)
     :config
-    (remove-hook 'before-save-hook 'org-encrypt-entries t)
-    (let ((template "\n** ${title}\n:PROPERTIES:\n:EXPORT_FILE_NAME: ${slug}\n:ID: %(org-id-uuid)\n:END:\n\n\n"))
-      (add-to-list
-       'org-roam-capture-templates
-       `("p" "Dev Site Project" plain ,template
-         :target (file+olp "site.org" ("Dev" "Projects"))))
-      (add-to-list
-       'org-roam-capture-templates
-       `("t" "Dev Site Tip" plain ,template
-         :target (file+olp "site.org" ("Dev" "Tips"))))))
+    (remove-hook 'before-save-hook 'org-encrypt-entries t))
 #+end_src
 
 **** Org-roam
@@ -1034,7 +1027,11 @@ Note taking system for networked thought which is how I interact with entries on
     (org-roam-node-display-template
      (concat "${title:*} "
              (propertize "${tags:30}" 'face 'org-tag)))
-    (org-roam-db-node-include-function #'(lambda () (not (member "drill" (org-get-tags)))))
+    ;; exclude every org-drill vocab entry and files which have been
+    ;; copied to the nix store
+    (org-roam-db-node-include-function
+     #'(lambda () (and (not (file-in-directory-p (buffer-file-name) "/nix/store/"))
+                  (not (member "drill" (org-get-tags))))))
     :config
     (org-roam-setup)
     (org-roam-db-autosync-mode)
